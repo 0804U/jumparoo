@@ -1,5 +1,10 @@
-PlayState = {};
+// =============================================================================
+// sprites
+// =============================================================================
 
+//
+// hero sprite
+//
 function Hero(game, x, y ) {
   Phaser.Sprite.call(this, game, x, y, 'hero');
 
@@ -10,6 +15,25 @@ function Hero(game, x, y ) {
 // inherit from Phaser.Sprite
 Hero.prototype = Object.create(Phaser.Sprite.prototype);
 Hero.prototype.constructor = Hero;
+
+Hero.prototype.move = function (direction) {
+  this.x += direction * 2.5;
+};
+
+// =============================================================================
+// game states
+// =============================================================================
+
+PlayState = {};
+
+PlayState.init = function () {
+  this.game.renderer.renderSession.roundPixels = true;
+
+  this.keys = this.game.input.keyboard.addKeys({
+    left: Phaser.KeyCode.LEFT,
+    right: Phaser.KeyCode.RIGHT
+  });
+};
 
 // Load Game Assets
 PlayState.preload = function() {
@@ -35,6 +59,15 @@ PlayState._spawnCharacters = function (data) {
   this.game.add.existing(this.hero);
 }
 
+// Input Helper
+PlayState._handleInput = function () {
+  if (this.keys.left.isDown) {
+    this.hero.move(-1);
+  } else if (this.keys.right.isDown) {
+    this.hero.move(1);
+  }
+};
+
 // Load Level Helper
 PlayState._loadLevel = function (data) {
   data.platforms.forEach(this._spawnPlatform, this);
@@ -47,9 +80,14 @@ PlayState.create = function() {
   this._loadLevel(this.game.cache.getJSON('level:1'));
 }
 
+// Update Game State
+PlayState.update = function () {
+  this._handleInput();
+}
 
-
-// Create Game
+// =============================================================================
+// entry point
+// =============================================================================
 window.onload = function() {
   let game = new Phaser.Game(960, 600, Phaser.AUTO, 'game');
   game.state.add('play', PlayState);
