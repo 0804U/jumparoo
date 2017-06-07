@@ -10,6 +10,7 @@ function Hero(game, x, y ) {
 
   // Set Hero's anchor
   this.anchor.set(0.5, 0.5);
+  //Physics Properties
   this.game.physics.enable(this);
   this.body.collideWorldBounds = true;
 }
@@ -53,7 +54,13 @@ PlayState.preload = function() {
 
 // Spawn Platform Helper
 PlayState._spawnPlatform = function (platform) {
-  this.game.add.sprite(platform.x, platform.y, platform.image);
+  let sprite = this.platforms.create(
+    platform.x, platform.y, platform.image
+  );
+
+  this.game.physics.enable(sprite);
+  sprite.body.allowGravity = false;
+  sprite.body.immovable = true;
 };
 
 // Spawn Hero Helper
@@ -73,10 +80,23 @@ PlayState._handleInput = function () {
   }
 };
 
+// Collision Detection Helper
+PlayState._handleCollisions = function () {
+  this.game.physics.arcade.collide(this.hero, this.platforms);
+};
+
 // Load Level Helper
 PlayState._loadLevel = function (data) {
+  const GRAVITY = 1200;
+  
+  // create all the groups/layers that we need
+  this.platforms = this.game.add.group();
+  // spawn all platforms
   data.platforms.forEach(this._spawnPlatform, this);
+  // spawn hero and enemies
   this._spawnCharacters({ hero: data.hero });
+  // Enable gravity
+  this.game.physics.arcade.gravity.y = GRAVITY;
 };
 
 // Create Game Entities
@@ -87,6 +107,7 @@ PlayState.create = function() {
 
 // Update Game State
 PlayState.update = function () {
+  this._handleCollisions();
   this._handleInput();
 }
 
