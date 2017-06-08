@@ -122,7 +122,9 @@ Spider.prototype.die = function () {
 
 PlayState = {};
 
-PlayState.init = function () {
+const LEVEL_COUNT = 2;
+
+PlayState.init = function (data) {
   this.game.renderer.renderSession.roundPixels = true;
 
   this.keys = this.game.input.keyboard.addKeys({
@@ -140,10 +142,12 @@ PlayState.init = function () {
 
 this.coinPickupCount = 0;
 this.hasKey = false;
+this.level = (data.level || 0) % LEVEL_COUNT;
 };
 
 // Load Game Assets
 PlayState.preload = function() {
+  this.game.load.json('level:0', 'data/level00.json');
   this.game.load.json('level:1', 'data/level01.json');
 
   this.game.load.image('background', 'images/background.png');
@@ -241,7 +245,7 @@ PlayState._onHeroVsEnemy = function (hero, enemy) {
   }
   else { // game over -> restart the game
     this.sfx.stomp.play();
-    this.game.state.restart();
+    this.game.state.restart(true, false, { level: this.level });
   }
 };
 // Hero and Key Collision Helper
@@ -254,8 +258,9 @@ PlayState._onHeroVsKey = function (hero, key) {
 PlayState._onHeroVsDoor = function (hero, door) {
     this.sfx.door.play();
     this.game.state.restart();
-    // TODO: go to the next level instead
+    this.game.state.restart(true, false, { level: this.level + 1 });
 };
+
 
 // Input Helper
 PlayState._handleInput = function () {
@@ -375,7 +380,7 @@ PlayState.create = function() {
   };
 
   this.game.add.image(0, 0, 'background');
-  this._loadLevel(this.game.cache.getJSON('level:1'));
+  this._loadLevel(this.game.cache.getJSON(`level:${this.level}`));
   this._createHud();
 }
 
@@ -395,5 +400,5 @@ PlayState.update = function () {
 window.onload = function() {
   let game = new Phaser.Game(960, 600, Phaser.AUTO, 'game');
   game.state.add('play', PlayState);
-  game.state.start('play');
+  game.state.start('play', true, false, {level: 0});
 }
