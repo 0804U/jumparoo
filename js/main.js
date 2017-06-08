@@ -35,6 +35,11 @@ Hero.prototype.jump = function () {
   return canJump;
 };
 
+Hero.prototype.bounce = function () {
+  const BOUNCE_SPEED = 200;
+  this.body.velocity.y = -BOUNCE_SPEED;
+};
+
 //
 // Spider sprite
 //
@@ -43,10 +48,11 @@ function Spider(game, x, y) {
 
     // anchor
     this.anchor.set(0.5);
-    // animation
+    // animations
     this.animations.add('crawl', [0, 1, 2], 8, true);
     this.animations.add('die', [0, 4, 0, 4, 0, 4, 3, 3, 3, 3, 3, 3], 12);
     this.animations.play('crawl');
+    this.animations.add('die', [0, 4, 0, 4, 0, 4, 3, 3, 3, 3, 3, 3], 12);
 
     // physic properties
     this.game.physics.enable(this);
@@ -69,6 +75,14 @@ Spider.prototype.update = function () {
     else if (this.body.touching.left || this.body.blocked.left) {
         this.body.velocity.x = Spider.SPEED; // turn right
     }
+};
+
+Spider.prototype.die = function () {
+  this.body.enable = false;
+
+  this.animations.play('die').onComplete.addOnce(function () {
+    this.kill();
+  }, this);
 };
 
 // =============================================================================
@@ -110,6 +124,9 @@ PlayState.preload = function() {
   this.game.load.spritesheet('spider', 'images/spider.png', 42, 32);
   this.game.load.audio('sfx:jump', 'audio/jump.wav');
   this.game.load.audio('sfx:coin', 'audio/coin.wav');
+  this.game.load.audio('sfx:stomp', 'audio/stomp.wav');
+  this.game.load.audio('sfx:door', 'audio/door.wav');
+  this.game.load.audio('sfx:key', 'audio/key.wav');
 }
 
 
@@ -170,6 +187,19 @@ PlayState._onHeroVsCoin = function (hero, coin) {
   coin.kill();
 };
 
+// Hero and Spider Collision Helper
+PlayState._onHeroVsEnemy = function (hero, enemy) {
+  if (hero.body.velocity.y > 0) { // kill enemies when hero is falling
+    hero.bounce();
+    enemy.die();
+    this.sfx.stomp.play();
+  }
+  else { // game over -> restart the game
+    this.sfx.stomp.play();
+    this.game.state.restart();
+  }
+};
+
 // Input Helper
 PlayState._handleInput = function () {
   if (this.keys.left.isDown) {
@@ -190,6 +220,14 @@ PlayState._handleCollisions = function () {
   // Spiders, Platforms, and walls
   this.game.physics.arcade.collide(this.spiders, this.platforms);
   this.game.physics.arcade.collide(this.spiders, this.enemyWalls);
+  // Hero and Spiders
+  this.game.physics.arcade.overlap(
+    this.hero,
+    this.spiders,
+    this._onHeroVsEnemy,
+    null,
+    this
+  );
 };
 
 // Load Level Helper
@@ -217,7 +255,8 @@ PlayState.create = function() {
   // Sound Entities
   this.sfx = {
     jump: this.game.add.audio('sfx:jump'),
-    coin: this.game.add.audio('sfx:coin')
+    coin: this.game.add.audio('sfx:coin'),
+    stomp: this.game.add.audio('sfx:stomp')
   };
 
   this.game.add.image(0, 0, 'background');
